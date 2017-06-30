@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Pagina Refresh</title>
+    <script type="text/javascript" src="/jquery-1.10.2.min.js"></script>
+    <script type="text/javascript" src="/socketcluster.js"></script>
+</head>
+
+<body>
+    <script>
+    var MiSocketCluster = null;
+
+    function EventosComunicacion() {
+	var EventoGenerado = document.createEvent('MessageEvent');
+        EnviarMensajeExterno = function(NombreFuncion, data) {
+var event = new MessageEvent(NombreFuncion, { 'view': window, 'bubbles': false, 'cancelable': false, 'data': data });
+document.dispatchEvent(event);
+return;
+
+
+            try {
+                EventoGenerado.initMessageEvent(NombreFuncion, false, false, data, null, null, null, null);
+                document.dispatchEvent(EventoGenerado);
+            } catch (e) {
+                alert(e)
+            }
+
+        }
+    }
+
+    function CerrarCluster() {
+        MiSocketCluster.disconnect();
+    }
+
+    function RespuestaRefresh(Sala, data) {
+        MiSocketCluster.publish(Sala, data);
+    }
+
+    function UpdateFiles(Sala, data) {
+        MiSocketCluster.publish(Sala, data);
+    }
+
+
+    function EmpezarSocketCluster() {
+        $(function() {
+            var sc = socketCluster.connect({
+                hostname: window.location.hostname,
+                port: 8001
+            });
+            MiSocketCluster = sc;
+
+            sc.on("connect", function() {
+                MiSocketCluster.emit('NUEVO_USUARIO_CONECTADO', {
+                    IdUsuario: 0,
+                    NombreUsuario: 'AUTOMATA COBRA',
+                    Paginas: {
+                        NombrePagina: 'PROGRAMA REFRESH',
+                        IPLocal: window.location.hostname,
+                        IPPublica: window.location.hostname,
+                        Plataforma: 'WINDOW'
+                    }
+                }, function(data) {
+                    /*EL CLUSTER YA TIENE CONOCIMIENTO DE QUE NOS CONECTAMOS*/
+                });
+            });
+
+            var chatChannel = sc.subscribe('SALA_REFRESH_ASOCIAR_CMS');
+
+            chatChannel.watch(function(data) {
+                data = JSON.parse(data);
+                if (data.hasOwnProperty('data')){
+                    data = JSON.parse(data.data);
+                }
+                switch (data.TAREA) {
+                    case 'REFRESH':
+                        EnviarMensajeExterno('FuncionExterna', JSON.stringify(data));
+                        break;
+                    case 'ASOCIAR_DECO':
+                        break;
+                    case 'CONSULTAR_PETICION':
+                        EnviarMensajeExterno('FuncionExternaPeticion', JSON.stringify(data));
+                        break;
+                }
+                return;
+                if (data == 'CERRAR_VENTANA') {
+                    $('body').html('<div style="font-size: 50px; text-align: center; color: red;"><p>MISMO USUARIO EN DIFERENTES IPs</p><p><img style="" src="' + $.session.get('RESOLVER_URL') + '" alt="Carita">  </p><p>RASTREANDO PC....</p></div></div>');
+                    setTimeout(function() {
+                        MiSocketCluster.disconnect();
+                        window.close();
+                    }, 10000);
+                }
+            });
+		 sc.subscribe('USUARIO_ENTRO_BANDEJA_PRELIQUIDACION').watch(function(data) {
+			EnviarMensajeExterno('UsuarioNuevoPreLiquidaciones', data);
+		 });
+		 sc.subscribe('PaginaBandejaPreliquidaciones').watch(function(data) {
+			EnviarMensajeExterno('PaginaBandejaLiquidaciones', data.Proceso + '|' + data.IdOrden);
+		 });
+        });
+    }
+    EventosComunicacion();
+    EmpezarSocketCluster();
+    </script>
+</body>
+
+</html>

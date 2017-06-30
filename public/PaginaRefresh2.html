@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Pagina Refresh</title>
+    <script type="text/javascript" src="/jquery-1.10.2.min.js"></script>
+    <script type="text/javascript" src="/socketcluster.js"></script>
+</head>
+
+<body>
+    <script>
+    var MiSocketCluster = null;
+
+    function EventosComunicacion() {
+        var EventoGenerado = document.createEvent('MessageEvent');
+        EnviarMensajeExterno = function(NombreFuncion, data) {
+            try {
+
+                EventoGenerado.initMessageEvent(NombreFuncion, false, false, data, null, null, null, null);
+                document.dispatchEvent(EventoGenerado);
+            } catch (e) {
+                alert(e)
+            }
+
+        }
+    }
+
+    function CerrarCluster() {
+        MiSocketCluster.disconnect();
+    }
+
+    function RespuestaRefresh(Sala, data) {
+        MiSocketCluster.publish(Sala, data);
+    }
+
+
+    function EmpezarSocketCluster() {
+        $(function() {
+            var sc = socketCluster.connect({
+                hostname: window.location.hostname,
+                port: 8001
+            });
+            MiSocketCluster = sc;
+
+            sc.on("connect", function() {
+                MiSocketCluster.emit('NUEVO_USUARIO_CONECTADO', {
+                    IdUsuario: 0,
+                    NombreUsuario: 'AUTOMATA COBRA',
+                    Paginas: {
+                        NombrePagina: 'PROGRAMA REFRESH',
+                        IPLocal: window.location.hostname,
+                        IPPublica: window.location.hostname,
+                        Plataforma: 'WINDOW'
+                    }
+                }, function(data) {
+                    /*EL CLUSTER YA TIENE CONOCIMIENTO DE QUE NOS CONECTAMOS*/
+                });
+            });
+
+         /*   var chatChannel = sc.subscribe('SALA_REFRESH_ASOCIAR_CMS');
+
+            chatChannel.watch(function(data) {
+                data = JSON.parse(data);
+                if (data.hasOwnProperty('data')){
+                    data = JSON.parse(data.data);
+                }
+                switch (data.TAREA) {
+                    case 'REFRESH':
+                        EnviarMensajeExterno('FuncionExterna', JSON.stringify(data));
+                        break;
+                    case 'ASOCIAR_DECO':
+                        break;
+                }
+                return;
+                if (data == 'CERRAR_VENTANA') {
+                    $('body').html('<div style="font-size: 50px; text-align: center; color: red;"><p>MISMO USUARIO EN DIFERENTES IPs</p><p><img style="" src="' + $.session.get('RESOLVER_URL') + '" alt="Carita">  </p><p>RASTREANDO PC....</p></div></div>');
+                    setTimeout(function() {
+                        MiSocketCluster.disconnect();
+                        window.close();
+                    }, 10000);
+                }
+            });
+*/
+        
+                 console.log( "PRIMERA LINEA 1" );
+            var CanalDevoluciones = sc.subscribe('DEVOLUCIONES');
+
+              CanalDevoluciones.watch(function(data) {
+                data2 = JSON.parse(data);
+             
+                 console.log( "PRIMERA LINEA", data );
+                 
+ 
+                
+                if (data2.hasOwnProperty('data')){
+
+                    console.log( "DENTRO DE IF", data2.data );
+                    data2 =data2.data
+                 
+                 }
+
+         console.log("ESTA ES LA DATA 2",JSON.stringify(data2),"INDEX OF ",data2.indexOf("Comerciales")!=-1);
+
+                   if(data2.indexOf("Comerciales")!=-1){
+
+                         console.log("DENTRO DE SWITCH",JSON.stringify(data2));
+                        EnviarMensajeExterno('FuncionExt_DevComerciales', JSON.stringify(data2));
+                   }
+            
+            /*     switch (data2.TAREA) {
+                    case "COMERCIALES":
+                        break;
+                        default:
+                        break;
+                   
+                }
+               */ 
+                
+              
+            });
+
+
+        });
+    }
+    EventosComunicacion();
+    EmpezarSocketCluster();
+    </script>
+</body>
+
+</html>
